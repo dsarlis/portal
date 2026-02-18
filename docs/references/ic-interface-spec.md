@@ -298,7 +298,7 @@ The canister status can be used to control whether the canister is processing ca
 
 In all cases, calls to the [management canister](#ic-management-canister) are processed, regardless of the state of the managed canister.
 
-The controllers of the canister can initiate transitions between these states using [`stop_canister`](#ic-stop_canister) and [`start_canister`](#ic-start_canister), and query the state using [`canister_status`](#ic-canister_status) (NB: this call returns additional information, such as the cycle balance of the canister). The canister itself can also query its state using [`ic0.canister_status`](#system-api-canister-status).
+The controllers of the canister and subnet admins can initiate transitions between these states using [`stop_canister`](#ic-stop_canister) and [`start_canister`](#ic-start_canister), and query the state using [`canister_status`](#ic-canister_status) (NB: this call returns additional information, such as the cycle balance of the canister). The canister itself can also query its state using [`ic0.canister_status`](#system-api-canister-status).
 
 :::note
 
@@ -2539,7 +2539,7 @@ This method can be called by canisters as well as by external users via ingress 
 
 This method removes a canister's code and state, making the canister *empty* again.
 
-Only controllers of the canister can uninstall code.
+Only controllers of the canister and subnet admins can uninstall code.
 
 Uninstalling a canister's code will reject all calls that the canister has not yet responded to, and drop the canister's code and state. Outstanding responses to the canister will not be processed, even if they arrive after code has been installed again. Cycles attached to such responses will still be refunded though.
 
@@ -2682,7 +2682,7 @@ The returned response contains the following fields:
 
 This method can be called by canisters as well as by external users via ingress messages.
 
-The controllers of a canister may stop a canister (e.g., to prepare for a canister upgrade).
+The controllers of a canister and subnet admins may stop a canister (e.g., to prepare for a canister upgrade).
 
 When this method successfully returns, then the canister status is `stopped` at that point.
 However, note that the canister might be restarted at any time due to a concurrent call.
@@ -2699,7 +2699,7 @@ The execution of this method proceeds as follows:
 
 This method can be called by canisters as well as by external users via ingress messages.
 
-A canister may be started by its controllers.
+A canister may be started by its controllers and subnet admins.
 
 If the canister status was `stopped` or `stopping` then the canister status is simply set to `running`. In the latter case all `stop_canister` calls which are processing fail (and are rejected).
 
@@ -2711,7 +2711,7 @@ This method can be called by canisters as well as by external users via ingress 
 
 This method deletes a canister from the IC.
 
-Only controllers of the canister can delete it and the canister must already be stopped. Deleting a canister cannot be undone, any state stored on the canister is permanently deleted and its cycles are discarded. Once a canister is deleted, its ID cannot be reused.
+Only controllers of the canister and subnet admins can delete it and the canister must already be stopped. Deleting a canister cannot be undone, any state stored on the canister is permanently deleted and its cycles are discarded. Once a canister is deleted, its ID cannot be reused.
 
 ### IC method `deposit_cycles` {#ic-deposit_cycles}
 
@@ -4229,6 +4229,7 @@ The initial state of the IC is
   call_contexts = ();
   messages = [];
   root_key = PublicKey;
+  subnet_admins = ();
 }
 ```
 
@@ -4357,10 +4358,16 @@ liquid_balance(S, E.content.canister_id) ≥ 0
   E.content.arg = candid({canister_id = CanisterId, …})
   E.content.sender ∈ S.controllers[CanisterId]
   E.content.method_name ∈
-    { "install_code", "install_chunked_code", "uninstall_code", "update_settings", "start_canister", "stop_canister",
-      "canister_status", "delete_canister", "upload_chunk", "clear_chunk_store", "stored_chunks",
-      "read_canister_snapshot_metadata", "read_canister_snapshot_data", "upload_canister_snapshot_metadata", "upload_canister_snapshot_data",
+    { "install_code", "install_chunked_code", "update_settings", "canister_status",
+      "upload_chunk", "clear_chunk_store", "stored_chunks", "read_canister_snapshot_metadata",
+      "read_canister_snapshot_data", "upload_canister_snapshot_metadata", "upload_canister_snapshot_data",
       "provisional_top_up_canister" }
+) ∨ (
+  E.content.canister_id = ic_principal
+  E.content.arg = candid({canister_id = CanisterId, …})
+  E.content.sender ∈ { S.controllers[CanisterId], S.subnet_admins[SubnetId] }
+  E.content.method_name ∈
+    { "start_canister", "stop_canister", "uninstall_code", "delete_canister" }
 ) ∨ (
   E.content.canister_id = ic_principal
   E.content.method_name ∈
