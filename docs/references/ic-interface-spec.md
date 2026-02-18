@@ -4365,7 +4365,7 @@ liquid_balance(S, E.content.canister_id) ≥ 0
 ) ∨ (
   E.content.canister_id = ic_principal
   E.content.arg = candid({canister_id = CanisterId, …})
-  E.content.sender ∈ { S.controllers[CanisterId], S.subnet_admins[SubnetId] }
+  E.content.sender ∈ S.controllers[CanisterId] ∪ S.subnet_admins[S.canister_subnet[CanisterId]]
   E.content.method_name ∈
     { "start_canister", "stop_canister", "uninstall_code", "delete_canister" }
 ) ∨ (
