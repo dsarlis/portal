@@ -298,7 +298,7 @@ The canister status can be used to control whether the canister is processing ca
 
 In all cases, calls to the [management canister](#ic-management-canister) are processed, regardless of the state of the managed canister.
 
-The controllers of the canister and subnet admins can initiate transitions between these states using [`stop_canister`](#ic-stop_canister) and [`start_canister`](#ic-start_canister), and query the state using [`canister_status`](#ic-canister_status) (NB: this call returns additional information, such as the cycle balance of the canister). The canister itself can also query its state using [`ic0.canister_status`](#system-api-canister-status).
+The controllers of the canister or subnet admins can initiate transitions between these states using [`stop_canister`](#ic-stop_canister) and [`start_canister`](#ic-start_canister), and query the state using [`canister_status`](#ic-canister_status) (NB: this call returns additional information, such as the cycle balance of the canister). The canister itself can also query its state using [`ic0.canister_status`](#system-api-canister-status).
 
 :::note
 
