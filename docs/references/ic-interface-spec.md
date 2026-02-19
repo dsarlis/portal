@@ -2539,7 +2539,7 @@ This method can be called by canisters as well as by external users via ingress 
 
 This method removes a canister's code and state, making the canister *empty* again.
 
-Only controllers of the canister and subnet admins can uninstall code.
+Only controllers of the canister or subnet admins can uninstall code.
 
 Uninstalling a canister's code will reject all calls that the canister has not yet responded to, and drop the canister's code and state. Outstanding responses to the canister will not be processed, even if they arrive after code has been installed again. Cycles attached to such responses will still be refunded though.
 
@@ -2604,7 +2604,7 @@ Indicates various information about the canister. It contains:
 
     * `response_payload_bytes_total`: the total number of query and composite query response payload (reply data or reject message) bytes.
 
-Only the controllers of the canister or the canister itself can request its status.
+Only the controllers of the canister or the canister itself or subnet admins can request its status.
 
 #### Memory Metrics {#ic-canister_status-memory_metrics}
 
@@ -2682,7 +2682,7 @@ The returned response contains the following fields:
 
 This method can be called by canisters as well as by external users via ingress messages.
 
-The controllers of a canister and subnet admins may stop a canister (e.g., to prepare for a canister upgrade).
+The controllers of a canister or subnet admins may stop a canister (e.g., to prepare for a canister upgrade).
 
 When this method successfully returns, then the canister status is `stopped` at that point.
 However, note that the canister might be restarted at any time due to a concurrent call.
@@ -2699,7 +2699,7 @@ The execution of this method proceeds as follows:
 
 This method can be called by canisters as well as by external users via ingress messages.
 
-A canister may be started by its controllers and subnet admins.
+A canister may be started by its controllers or subnet admins.
 
 If the canister status was `stopped` or `stopping` then the canister status is simply set to `running`. In the latter case all `stop_canister` calls which are processing fail (and are rejected).
 
@@ -2711,7 +2711,7 @@ This method can be called by canisters as well as by external users via ingress 
 
 This method deletes a canister from the IC.
 
-Only controllers of the canister and subnet admins can delete it and the canister must already be stopped. Deleting a canister cannot be undone, any state stored on the canister is permanently deleted and its cycles are discarded. Once a canister is deleted, its ID cannot be reused.
+Only controllers of the canister or subnet admins can delete it and the canister must already be stopped. Deleting a canister cannot be undone, any state stored on the canister is permanently deleted and its cycles are discarded. Once a canister is deleted, its ID cannot be reused.
 
 ### IC method `deposit_cycles` {#ic-deposit_cycles}
 
@@ -4358,10 +4358,16 @@ liquid_balance(S, E.content.canister_id) ≥ 0
   E.content.arg = candid({canister_id = CanisterId, …})
   E.content.sender ∈ S.controllers[CanisterId]
   E.content.method_name ∈
-    { "install_code", "install_chunked_code", "update_settings", "canister_status",
-      "upload_chunk", "clear_chunk_store", "stored_chunks", "read_canister_snapshot_metadata",
-      "read_canister_snapshot_data", "upload_canister_snapshot_metadata", "upload_canister_snapshot_data",
-      "provisional_top_up_canister" }
+    { "install_code", "install_chunked_code", "update_settings", "upload_chunk", 
+      "clear_chunk_store", "stored_chunks", "read_canister_snapshot_metadata",
+      "read_canister_snapshot_data", "upload_canister_snapshot_metadata",
+      "upload_canister_snapshot_data", "provisional_top_up_canister" }
+) ∨ (
+  E.content.canister_id = ic_principal
+  E.content.arg = candid({canister_id = CanisterId, …})
+  E.content.sender ∈ { CanisterId } ∪ S.controllers[CanisterId] ∪ S.subnet_admins[S.canister_subnet[CanisterId]]
+  E.content.method_name ∈
+    { "canister_status" }
 ) ∨ (
   E.content.canister_id = ic_principal
   E.content.arg = candid({canister_id = CanisterId, …})
@@ -5444,7 +5450,7 @@ S.messages = Older_messages · CallMessage M · Younger_messages
 M.callee = ic_principal
 M.method_name = 'canister_status'
 M.arg = candid(A)
-M.caller ∈ S.controllers[A.canister_id] ∪ {A.canister_id}
+M.caller ∈ S.controllers[A.canister_id] ∪ {A.canister_id} ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 
 ```
 
@@ -6003,7 +6009,7 @@ S.messages = Older_messages · CallMessage M · Younger_messages
 M.callee = ic_principal
 M.method_name = 'uninstall_code'
 M.arg = candid(A)
-M.caller ∈ S.controllers[A.canister_id]
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 S.canister_history[A.canister_id] = {
   total_num_changes = N;
   recent_changes = H;
@@ -6078,7 +6084,7 @@ M.callee = ic_principal
 M.method_name = 'stop_canister'
 M.arg = candid(A)
 S.canister_status[A.canister_id] = Running
-M.caller ∈ S.controllers[A.canister_id]
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 
 ```
 
@@ -6103,7 +6109,7 @@ M.callee = ic_principal
 M.method_name = 'stop_canister'
 M.arg = candid(A)
 S.canister_status[A.canister_id] = Stopping Origins
-M.caller ∈ S.controllers[A.canister_id]
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 
 ```
 
@@ -6159,7 +6165,7 @@ M.callee = ic_principal
 M.method_name = 'stop_canister'
 M.arg = candid(A)
 S.canister_status[A.canister_id] = Stopped
-M.caller ∈ S.controllers[A.canister_id]
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 
 ```
 
@@ -6217,7 +6223,7 @@ M.callee = ic_principal
 M.method_name = 'start_canister'
 M.arg = candid(A)
 S.canister_status[A.canister_id] = Running or S.canister_status[A.canister_id] = Stopped
-M.caller ∈ S.controllers[A.canister_id]
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 
 ```
 
@@ -6249,7 +6255,7 @@ M.callee = ic_principal
 M.method_name = 'start_canister'
 M.arg = candid(A)
 S.canister_status[A.canister_id] = Stopping Origins
-M.caller ∈ S.controllers[A.canister_id]
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 
 ```
 
@@ -6288,7 +6294,7 @@ M.callee = ic_principal
 M.method_name = 'delete_canister'
 M.arg = candid(A)
 S.canister_status[A.canister_id] = Stopped
-M.caller ∈ S.controllers[A.canister_id]
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
 
 ```
 
@@ -7520,7 +7526,7 @@ S with
 
 ```
 
-#### Time progressing, cycle consumption, and canister version increments
+#### Time progressing, cycle consumption, canister version increments and subnet admins updates
 
 Time progresses. Abstractly, it does so independently for each canister, and in unspecified intervals.
 
@@ -7602,7 +7608,7 @@ S with
 
 ```
 
-Finally, the canister version can be incremented arbitrarily:
+Additionally, the canister version can be incremented arbitrarily:
 
 Conditions  
 
@@ -7621,6 +7627,30 @@ S with
     canister_version[CanisterId] = N1
 
 ```
+
+Finally, subnet admins can be changed arbirtrarily: 
+
+Conditions  
+
+```html
+
+SA0 = S.subnet_admins
+SA1 != SA0
+
+```
+
+State after  
+
+```html
+
+S with
+    subnet_admins = SA1
+    
+```
+
+:::note
+
+In production, subnet admins can be set via the Subnet Rental Canister which is not modeled in this document.
 
 #### Trimming canister history
 
