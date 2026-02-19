@@ -4358,16 +4358,8 @@ liquid_balance(S, E.content.canister_id) ≥ 0
   E.content.arg = candid({canister_id = CanisterId, …})
   E.content.sender ∈ S.controllers[CanisterId]
   E.content.method_name ∈
-    { "install_code", "install_chunked_code", "update_settings", "upload_chunk", 
-      "clear_chunk_store", "stored_chunks", "read_canister_snapshot_metadata",
-      "read_canister_snapshot_data", "upload_canister_snapshot_metadata",
-      "upload_canister_snapshot_data", "provisional_top_up_canister" }
-) ∨ (
-  E.content.canister_id = ic_principal
-  E.content.arg = candid({canister_id = CanisterId, …})
-  E.content.sender ∈ { CanisterId } ∪ S.controllers[CanisterId] ∪ S.subnet_admins[S.canister_subnet[CanisterId]]
-  E.content.method_name ∈
-    { "canister_status" }
+    { "install_code", "install_chunked_code", "update_settings", "canister_status", "upload_chunk",
+      "clear_chunk_store", "stored_chunks", "read_canister_snapshot_metadata", "read_canister_snapshot_data", "upload_canister_snapshot_metadata", "upload_canister_snapshot_data", "provisional_top_up_canister" }
 ) ∨ (
   E.content.canister_id = ic_principal
   E.content.arg = candid({canister_id = CanisterId, …})
@@ -7645,7 +7637,7 @@ State after
 
 S with
     subnet_admins = SA1
-    
+
 ```
 
 :::note
