@@ -3241,6 +3241,15 @@ Replica-signed queries may improve security because the recipient can verify the
 
 :::
 
+### IC method `canister_metrics` {#ic-canister_metrics}
+
+This method can be called by canisters as well as by external users via ingress messages.
+
+This method returns a set of canister related metrics for the requested canister, like cycles consumed by different use cases.
+
+Only controllers of the canister or subnet admins can call this method.
+
+
 ## The IC Bitcoin API {#ic-bitcoin-api}
 
 The Bitcoin API exposed by the management canister is DEPRECATED.
@@ -4365,7 +4374,7 @@ liquid_balance(S, E.content.canister_id) ≥ 0
   E.content.arg = candid({canister_id = CanisterId, …})
   E.content.sender ∈ S.controllers[CanisterId] ∪ S.subnet_admins[S.canister_subnet[CanisterId]]
   E.content.method_name ∈
-    { "start_canister", "stop_canister", "uninstall_code", "delete_canister" }
+    { "start_canister", "stop_canister", "uninstall_code", "delete_canister", "canister_metrics" }
 ) ∨ (
   E.content.canister_id = ic_principal
   E.content.method_name ∈
@@ -7198,6 +7207,38 @@ S with
       }
 
 ```
+
+#### IC Management Canister: Canister metrics
+
+Only the controllers of the given canister or subnet admins can get metrics about it.
+
+``html
+
+S.messages = Older_messages · CallMessage M · Younger_messages
+(M.queue = Unordered) or (∀ msg ∈ Older_messages. msg.queue ≠ M.queue)
+M.callee = ic_principal
+M.method_name = 'canister_metrics'
+M.arg = candid(A)
+M.caller ∈ S.controllers[A.canister_id] ∪ S.subnet_admins[S.canister_subnet[A.canister_id]]
+
+R = <implementation-specific>
+
+```
+
+State after
+
+```html
+
+S with
+    messages = Older_messages · Younger_messages ·
+      ResponseMessage {
+        origin = M.origin
+        response = Reply (candid(R))
+        refunded_cycles = M.transferred_cycles
+      }
+
+```
+
 
 #### Callback invocation
 
