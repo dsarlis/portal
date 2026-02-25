@@ -613,6 +613,39 @@ type upload_canister_snapshot_data_args = record {
     chunk : blob;
 };
 
+type cycles_consumed = record {
+  memory : nat;
+  compute_allocation : nat;
+  ingress_induction : nat;
+  instructions : nat;
+  request_and_response_transmissio : nat;
+  uninstall : nat;
+  canister_creation : nat;
+  ecdsa_outcalls : nat;
+  http_outcalls : nat;
+  deleted_canisters : nat;
+  burned_cycles : nat;
+  schnorr_outcalls : nat;
+  vetkd : nat;
+  dropped_messages : nat;
+}
+
+type cycles_metrics = record {
+  cycles_consumed : cycles_consumed;
+}
+
+type canister_metrics = record {
+  cycles_metrics : cycles_metrics;
+}
+
+type canister_metrics_args = record {
+  canister_id : canister_id;
+}
+
+type canister_metrics_result = record {
+  canister_metrics : canister_metrics;
+}
+
 service ic : {
     create_canister : (create_canister_args) -> (create_canister_result);
     update_settings : (update_settings_args) -> ();
@@ -675,4 +708,7 @@ service ic : {
 
     // canister logging
     fetch_canister_logs : (fetch_canister_logs_args) -> (fetch_canister_logs_result) query;
+
+    // Returns canister related metrics
+    canister_metrics: (canister_metrics_args) -> (canister_metrics_result) query;
 };
